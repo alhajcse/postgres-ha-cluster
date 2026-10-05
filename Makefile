@@ -32,5 +32,5 @@ status:
 	@docker exec postgres-primary psql -U postgres -c "SELECT client_addr, state, sync_state FROM pg_stat_replication;" || true
 	@echo "=== Replica1 (10.70.16.202) ==="
 	@docker exec postgres-replica1 psql -U postgres -c "SELECT pg_is_in_recovery() AS is_replica;" || true
-	@echo "=== Replica2 (10.70.16.205) ==="
+	@echo "=== Replica2 (10.70.16.206) ==="
 	@docker exec postgres-replica2 psql -U postgres -c "SELECT pg_is_in_recovery() AS is_replica;" || true
