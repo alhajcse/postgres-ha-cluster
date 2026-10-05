@@ -1,0 +1,28 @@
+# Secrets
+.env
+*.env
+!*.env.example
+secrets/
+*.pem
+*.key
+
+# Data volumes
+data/
+volumes/
+primary-data/
+replica1-data/
+replica2-data/
+pgdata/
+
+# Logs
+*.log
+logs/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Ansible
+*.retry
