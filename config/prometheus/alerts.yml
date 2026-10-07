@@ -1,0 +1,46 @@
+groups:
+  - name: postgres
+    rules:
+      - alert: PostgresExporterDown
+        expr: up{job="postgres"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Postgres exporter down: {{ $labels.instance }}"
+
+      - alert: ReplicationLagHigh
+        expr: pg_replication_lag_seconds > 30
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Replication lag > 30s on {{ $labels.instance }}"
+
+      - alert: HighConnections
+        expr: pg_stat_database_numbackends / pg_settings_max_connections > 0.8
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "DB connections > 80% on {{ $labels.instance }}"
+
+  - name: node
+    rules:
+      - alert: NodeDown
+        expr: up{job="node"} == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "Node down: {{ $labels.instance }}"
+
+      - alert: DiskUsageHigh
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.15
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "Disk usage > 85% on {{ $labels.instance }}"
+
+      - alert: MemoryUsageHigh
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Memory usage > 90% on {{ $labels.instance }}"

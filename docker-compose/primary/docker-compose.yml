@@ -24,5 +24,39 @@ services:
       retries: 10
     restart: unless-stopped
 
+  postgres-exporter:
+    image: ${PG_EXPORTER_IMAGE}
+    container_name: postgres-exporter
+    restart: unless-stopped
+    ports:
+      - "${PG_EXPORTER_PORT}:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-primary:5432/postgres?sslmode=disable"
+      PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+
+  node-exporter:
+    image: ${NODE_EXPORTER_IMAGE}
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+
 volumes:
   primary-data:
+
+networks:
+  default:
+    name: pg-primary-net

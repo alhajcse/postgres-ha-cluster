@@ -1,0 +1,38 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: pg-ha-cluster
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['localhost:9093']
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: node
+    static_configs:
+      - targets:
+          - '10.70.16.231:9100'   # VM1 Primary
+          - '10.70.16.232:9100'   # VM2 Replica1
+          - '10.70.16.233:9100'   # VM3 Replica2
+          - '10.70.16.234:9100'   # VM4 HAProxy
+          - '10.70.16.235:9100'   # VM5 Monitoring
+        labels:
+          env: prod
+
+  - job_name: postgres
+    static_configs:
+      - targets:
+          - '10.70.16.231:9187'   # Primary
+          - '10.70.16.232:9187'   # Replica1
+          - '10.70.16.233:9187'   # Replica2
+        labels:
+          env: prod

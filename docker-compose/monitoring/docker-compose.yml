@@ -1,0 +1,65 @@
+services:
+  prometheus:
+    image: ${PROMETHEUS_IMAGE}
+    container_name: prometheus
+    restart: unless-stopped
+    user: root
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ../../config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../config/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+
+  alertmanager:
+    image: ${ALERTMANAGER_IMAGE}
+    container_name: alertmanager
+    restart: unless-stopped
+    ports:
+      - "${ALERTMANAGER_PORT}:9093"
+    volumes:
+      - ../../config/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+
+  grafana:
+    image: ${GRAFANA_IMAGE}
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../config/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  node-exporter:
+    image: ${NODE_EXPORTER_IMAGE}
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  alertmanager-data:

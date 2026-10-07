@@ -4,18 +4,28 @@ services:
     container_name: ${HAPROXY_CONTAINER_NAME}
     user: root
     network_mode: host
-    environment:
-      APP_ENV: production
-      PRIMARY_IP: ${PROD_PRIMARY_HOST}
-      REPLICA1_IP: ${PROD_REPLICA1_HOST}
-      REPLICA2_IP: ${PROD_REPLICA2_HOST}
     volumes:
-      - ../../config/haproxy/haproxy.cfg.template:/usr/local/etc/haproxy/haproxy.cfg.template:ro
-      - ../../scripts/haproxy/entrypoint.sh:/entrypoint-haproxy.sh:ro
-    entrypoint: ["/bin/sh", "/entrypoint-haproxy.sh"]
+      - ../../config/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     healthcheck:
       test: ["CMD-SHELL", "pgrep haproxy || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
     restart: unless-stopped
+
+  node-exporter:
+    image: ${NODE_EXPORTER_IMAGE}
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)

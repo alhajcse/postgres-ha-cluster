@@ -1,0 +1,28 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: default
+  group_by: [alertname, instance]
+  group_wait: 10s
+  group_interval: 5m
+  repeat_interval: 3h
+  routes:
+    - match:
+        severity: critical
+      receiver: critical
+
+receivers:
+  - name: default
+    # চাইলে email/slack যোগ করুন
+    webhook_configs: []
+
+  - name: critical
+    webhook_configs: []
+
+# উদাহরণ — Slack চাইলে:
+# receivers:
+#   - name: critical
+#     slack_configs:
+#       - api_url: 'https://hooks.slack.com/services/XXX'
+#         channel: '#alerts'
