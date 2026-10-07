@@ -60,7 +60,7 @@
   
   <!-- Title -->
   <text x="800" y="40" text-anchor="middle" font-size="26" font-weight="700" fill="#0f172a">
-    PostgreSQL High Availability Cluster — Technical Architecture
+    PostgreSQL High Availability Cluster
   </text>
   <text x="800" y="65" text-anchor="middle" font-size="13" fill="#64748b">
     5-VM Deployment · Streaming Replication · HAProxy Load Balancing · Prometheus/Grafana Monitoring
