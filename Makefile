@@ -1,36 +1,111 @@
-.PHONY: up-primary up-replica1 up-replica2 down-primary down-replica1 down-replica2 logs-primary logs-replica1 logs-replica2 status
+.PHONY: help up-local down-local down-local-clean status-local logs-local \
+        shell-primary shell-haproxy \
+        up-primary-prod up-replica1-prod up-replica2-prod up-haproxy-prod \
+        down-primary-prod down-replica1-prod down-replica2-prod down-haproxy-prod \
+        test-write test-read test-failover
 
-up-primary:
-	cd docker-compose/primary && docker compose up -d
+help:
+	@echo "LOCAL:"
+	@echo "  make up-local          Start all containers locally"
+	@echo "  make down-local        Stop"
+	@echo "  make down-local-clean  Stop + remove volumes"
+	@echo "  make status-local      Show status"
+	@echo "  make logs-local        HAProxy logs"
+	@echo ""
+	@echo "PROD (run on correct VM):"
+	@echo "  make up-primary-prod   VM1"
+	@echo "  make up-haproxy-prod   VM1"
+	@echo "  make up-replica1-prod  VM2"
+	@echo "  make up-replica2-prod  VM3"
+	@echo ""
+	@echo "TESTS (from laptop, local only):"
+	@echo "  make test-write        INSERT via :5000"
+	@echo "  make test-read         Round-robin SELECT via :5001"
+	@echo "  make test-failover     Stop replica1, verify failover"
 
-up-replica1:
-	cd docker-compose/replica1 && docker compose up -d
+# ============================================================
+# LOCAL
+# ============================================================
+up-local:
+	cd docker-compose/local && docker compose --env-file ../../.env up -d
+	@sleep 8
+	@docker ps --filter "name=postgres-" --filter "name=haproxy" \
+	  --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
-up-replica2:
-	cd docker-compose/replica2 && docker compose up -d
+down-local:
+	cd docker-compose/local && docker compose --env-file ../../.env down
 
-down-primary:
-	cd docker-compose/primary && docker compose down
+down-local-clean:
+	cd docker-compose/local && docker compose --env-file ../../.env down -v
 
-down-replica1:
-	cd docker-compose/replica1 && docker compose down
+status-local:
+	@docker ps --filter "name=postgres-" --filter "name=haproxy" \
+	  --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+	@echo ""
+	@docker exec postgres-primary psql -U postgres -c \
+	  "SELECT client_addr, state, sync_state FROM pg_stat_replication;" || true
 
-down-replica2:
-	cd docker-compose/replica2 && docker compose down
+logs-local:
+	docker logs -f haproxy
 
-logs-primary:
-	cd docker-compose/primary && docker compose logs -f
+shell-primary:
+	docker exec -it postgres-primary psql -U postgres -d mydb
 
-logs-replica1:
-	cd docker-compose/replica1 && docker compose logs -f
+shell-haproxy:
+	docker exec -it haproxy sh
 
-logs-replica2:
-	cd docker-compose/replica2 && docker compose logs -f
+# ============================================================
+# PROD (run per VM)
+# ============================================================
+up-primary-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f primary.yml up -d
 
-status:
-	@echo "=== Primary (10.70.16.201) ==="
-	@docker exec postgres-primary psql -U postgres -c "SELECT client_addr, state, sync_state FROM pg_stat_replication;" || true
-	@echo "=== Replica1 (10.70.16.202) ==="
-	@docker exec postgres-replica1 psql -U postgres -c "SELECT pg_is_in_recovery() AS is_replica;" || true
-	@echo "=== Replica2 (10.70.16.206) ==="
-	@docker exec postgres-replica2 psql -U postgres -c "SELECT pg_is_in_recovery() AS is_replica;" || true
+down-primary-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f primary.yml down
+
+up-replica1-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f replica1.yml up -d
+
+down-replica1-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f replica1.yml down
+
+up-replica2-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f replica2.yml up -d
+
+down-replica2-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f replica2.yml down
+
+up-haproxy-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f haproxy.yml up -d
+
+down-haproxy-prod:
+	cd docker-compose/prod && docker compose --env-file ../../.env -f haproxy.yml down
+
+# ============================================================
+# TESTS (local)
+# ============================================================
+test-write:
+	@PGPASSWORD=$${POSTGRES_PASSWORD:-postgres} psql -h localhost -p 5000 \
+	  -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-mydb} \
+	  -c "INSERT INTO test_replication (data) VALUES ('test at $$(date)');"
+
+test-read:
+	@for i in 1 2 3 4; do \
+	  echo -n "Request $$i → "; \
+	  PGPASSWORD=$${POSTGRES_PASSWORD:-postgres} psql -h localhost -p 5001 \
+	    -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-mydb} \
+	    -t -A -c "SELECT inet_server_addr() || ' | is_replica=' || pg_is_in_recovery();"; \
+	done
+
+test-failover:
+	@echo "Stopping replica1..."
+	docker stop postgres-replica1
+	@sleep 6
+	@for i in 1 2 3; do \
+	  echo -n "Request $$i → "; \
+	  PGPASSWORD=$${POSTGRES_PASSWORD:-postgres} psql -h localhost -p 5001 \
+	    -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-mydb} \
+	    -t -A -c "SELECT inet_server_addr();"; \
+	done
+	@echo "Restarting replica1..."
+	docker start postgres-replica1

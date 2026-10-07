@@ -1,0 +1,21 @@
+services:
+  haproxy:
+    image: ${HAPROXY_IMAGE}
+    container_name: ${HAPROXY_CONTAINER_NAME}
+    user: root
+    network_mode: host
+    environment:
+      APP_ENV: production
+      PRIMARY_IP: ${PROD_PRIMARY_HOST}
+      REPLICA1_IP: ${PROD_REPLICA1_HOST}
+      REPLICA2_IP: ${PROD_REPLICA2_HOST}
+    volumes:
+      - ../../config/haproxy/haproxy.cfg.template:/usr/local/etc/haproxy/haproxy.cfg.template:ro
+      - ../../scripts/haproxy/entrypoint.sh:/entrypoint-haproxy.sh:ro
+    entrypoint: ["/bin/sh", "/entrypoint-haproxy.sh"]
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep haproxy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped

@@ -1,0 +1,90 @@
+# ============================================
+# HAProxy Configuration Template
+# Substituted by entrypoint.sh via envsubst
+# Works for BOTH local (Docker service names)
+# and production (VM IPs).
+# ============================================
+
+global
+    log         stdout format raw local0
+    maxconn     2000
+    stats socket /tmp/haproxy.sock mode 660 level admin
+
+defaults
+    log         global
+    mode        tcp
+    option      tcplog
+    option      dontlognull
+    retries     3
+    timeout connect 5s
+    timeout client  30m
+    timeout server  30m
+
+# ============================================
+# Stats Dashboard (http://<host>:7000)
+# ============================================
+listen stats
+    bind *:7000
+    mode http
+    stats enable
+    stats uri /
+    stats refresh 5s
+    stats show-legends
+    stats admin if TRUE
+
+# ============================================
+# Frontend: Write (Primary only) - Port 5000
+# ============================================
+frontend pg_write
+    bind *:5000
+    default_backend pg_primary
+
+# ============================================
+# Frontend: Read (Replicas) - Port 5001
+# ============================================
+frontend pg_read
+    bind *:5001
+    default_backend pg_replicas
+
+# ============================================
+# Frontend: All nodes - Port 5002
+# ============================================
+frontend pg_all
+    bind *:5002
+    default_backend pg_all_nodes
+
+# ============================================
+# Backend: Primary
+# ============================================
+backend pg_primary
+    balance first
+    # option tcp-check
+    # tcp-check connect
+    # tcp-check send "SELECT pg_is_in_recovery()\r\n"
+    # tcp-check expect string f
+    server primary ${PRIMARY_IP}:5432 check inter 3s fall 2 rise 1
+
+# ============================================
+# Backend: Replicas - Round Robin
+# ============================================
+backend pg_replicas
+    balance roundrobin
+    # option tcp-check
+    # tcp-check connect
+    # tcp-check send "SELECT pg_is_in_recovery()\r\n"
+    # tcp-check expect string t
+    # মানে প্রতি ৩ সেকেন্ডে হেলথ চেক, ২ বার ফেল করলে সার্ভার DOWN। তাই replica1 বন্ধ হওয়ার পর HAProxy বুঝতে সময় নেয় ৩ × ২ = ৬ সেকেন্ড।
+    server replica1 ${REPLICA1_IP}:5432 check inter 3s fall 2 rise 1
+    server replica2 ${REPLICA2_IP}:5432 check inter 3s fall 2 rise 1
+
+# ============================================
+# Backend: All nodes
+# ============================================
+backend pg_all_nodes
+    balance roundrobin
+    # option tcp-check
+    # tcp-check connect
+    server primary ${PRIMARY_IP}:5432 check inter 3s fall 2 rise 1
+    server replica1 ${REPLICA1_IP}:5432 check inter 3s fall 2 rise 1
+    server replica2 ${REPLICA2_IP}:5432 check inter 3s fall 2 rise 1
+

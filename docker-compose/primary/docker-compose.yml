@@ -1,11 +1,7 @@
-version: '3.8'
-
 services:
   postgres-primary:
-    image: postgres:15
-    container_name: postgres-primary
-    env_file:
-      - ../../.env
+    image: ${POSTGRES_IMAGE}
+    container_name: ${PRIMARY_CONTAINER_NAME}
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -17,22 +13,16 @@ services:
       - ../../config/postgres/primary/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ../../config/postgres/primary/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
       - ../../scripts/primary/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - pg-net
     command: >
       postgres
       -c config_file=/etc/postgresql/postgresql.conf
       -c hba_file=/etc/postgresql/pg_hba.conf
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 3s
+      retries: 10
     restart: unless-stopped
 
 volumes:
   primary-data:
-
-networks:
-  pg-net:
-    driver: bridge

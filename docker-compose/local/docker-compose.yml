@@ -1,96 +1,126 @@
-version: '3.8'
-
 services:
   postgres-primary:
-    image: postgres:15
-    container_name: local-postgres-primary
+    image: ${POSTGRES_IMAGE}
+    container_name: ${PRIMARY_CONTAINER_NAME}
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: mydb
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${LOCAL_PRIMARY_HOST_PORT}:5432"
     volumes:
-      - local-primary-data:/var/lib/postgresql/data
+      - primary-data:/var/lib/postgresql/data
       - ../../config/postgres/primary/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ../../config/postgres/primary/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
       - ../../scripts/primary/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - local-pg-net
+    networks: [pg-net]
     command: >
       postgres
       -c config_file=/etc/postgresql/postgresql.conf
       -c hba_file=/etc/postgresql/pg_hba.conf
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
   postgres-replica1:
-    image: postgres:15
-    container_name: local-postgres-replica1
+    image: ${POSTGRES_IMAGE}
+    container_name: ${REPLICA1_CONTAINER_NAME}
     environment:
-      PRIMARY_IP: postgres-primary        # লোকাল নেটওয়ার্কে সার্ভিস নাম
-      REPLICATION_SLOT: replication_slot_1
-      REPLICATOR_USER: replicator
-      REPLICATOR_PASSWORD: replicator_password
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      PRIMARY_IP: ${LOCAL_PRIMARY_HOST}
+      PRIMARY_PORT: 5432
+      REPLICATION_SLOT: ${REPLICATION_SLOT_1}
+      REPLICATOR_USER: ${REPLICATOR_USER}
+      REPLICATOR_PASSWORD: ${REPLICATOR_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "${LOCAL_REPLICA1_HOST_PORT}:5432"
     volumes:
-      - local-replica1-data:/var/lib/postgresql/data
+      - replica1-data:/var/lib/postgresql/data
       - ../../config/postgres/replica/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ../../scripts/replica/entrypoint.sh:/entrypoint-replica.sh:ro
-    networks:
-      - local-pg-net
+    networks: [pg-net]
     entrypoint: ["/bin/bash", "/entrypoint-replica.sh"]
     depends_on:
       postgres-primary:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
   postgres-replica2:
-    image: postgres:15
-    container_name: local-postgres-replica2
+    image: ${POSTGRES_IMAGE}
+    container_name: ${REPLICA2_CONTAINER_NAME}
     environment:
-      PRIMARY_IP: postgres-primary
-      REPLICATION_SLOT: replication_slot_2
-      REPLICATOR_USER: replicator
-      REPLICATOR_PASSWORD: replicator_password
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      PRIMARY_IP: ${LOCAL_PRIMARY_HOST}
+      PRIMARY_PORT: 5432
+      REPLICATION_SLOT: ${REPLICATION_SLOT_2}
+      REPLICATOR_USER: ${REPLICATOR_USER}
+      REPLICATOR_PASSWORD: ${REPLICATOR_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5434:5432"
+      - "${LOCAL_REPLICA2_HOST_PORT}:5432"
     volumes:
-      - local-replica2-data:/var/lib/postgresql/data
+      - replica2-data:/var/lib/postgresql/data
       - ../../config/postgres/replica/postgresql.conf:/etc/postgresql/postgresql.conf:ro
       - ../../scripts/replica/entrypoint.sh:/entrypoint-replica.sh:ro
-    networks:
-      - local-pg-net
+    networks: [pg-net]
     entrypoint: ["/bin/bash", "/entrypoint-replica.sh"]
     depends_on:
       postgres-primary:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 5s
       timeout: 3s
       retries: 10
     restart: unless-stopped
 
+  haproxy:
+    image: ${HAPROXY_IMAGE}
+    container_name: ${HAPROXY_CONTAINER_NAME}
+    user: root
+    environment:
+      APP_ENV: local
+      PRIMARY_IP: ${LOCAL_PRIMARY_HOST}
+      REPLICA1_IP: ${LOCAL_REPLICA1_HOST}
+      REPLICA2_IP: ${LOCAL_REPLICA2_HOST}
+    ports:
+      - "${HAPROXY_WRITE_PORT}:5000"
+      - "${HAPROXY_READ_PORT}:5001"
+      - "${HAPROXY_ALL_PORT}:5002"
+      - "${HAPROXY_STATS_PORT}:7000"
+    volumes:
+      - ../../config/haproxy/haproxy.cfg.template:/usr/local/etc/haproxy/haproxy.cfg.template:ro
+      - ../../scripts/haproxy/entrypoint.sh:/entrypoint-haproxy.sh:ro
+    networks: [pg-net]
+    entrypoint: ["/bin/sh", "/entrypoint-haproxy.sh"]
+    depends_on:
+      postgres-primary:
+        condition: service_healthy
+      postgres-replica1:
+        condition: service_healthy
+      postgres-replica2:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep haproxy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
 volumes:
-  local-primary-data:
-  local-replica1-data:
-  local-replica2-data:
+  primary-data:
+  replica1-data:
+  replica2-data:
 
 networks:
-  local-pg-net:
+  pg-net:
     driver: bridge
