@@ -1,5 +1,5 @@
 -- Replication user
-CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD '123456';
+CREATE ROLE replicator WITH REPLICATION LOGIN PASSWORD 'ChangeMeRepl123!';
 
 -- Physical replication slots (one per replica)
 SELECT pg_create_physical_replication_slot('replication_slot_1');
