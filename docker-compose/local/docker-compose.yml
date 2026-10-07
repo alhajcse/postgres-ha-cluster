@@ -98,7 +98,7 @@ services:
       - "${HAPROXY_ALL_PORT}:5002"
       - "${HAPROXY_STATS_PORT}:7000"
     volumes:
-      - ../../config/haproxy/haproxy.cfg.template:/usr/local/etc/haproxy/haproxy.cfg.template:ro
+      - ../../config/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
       - ../../scripts/haproxy/entrypoint.sh:/entrypoint-haproxy.sh:ro
     networks: [pg-net]
     entrypoint: ["/bin/sh", "/entrypoint-haproxy.sh"]
