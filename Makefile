@@ -58,28 +58,28 @@ shell-haproxy:
 # PROD (run per VM)
 # ============================================================
 up-primary-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f primary.yml up -d
+	cd docker-compose/primary && docker compose --env-file ../../.env up -d
 
 down-primary-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f primary.yml down
+	cd docker-compose/primary && docker compose --env-file ../../.env down
 
 up-replica1-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f replica1.yml up -d
+	cd docker-compose/replica1 && docker compose --env-file ../../.env up -d
 
 down-replica1-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f replica1.yml down
+	cd docker-compose/replica1 && docker compose --env-file ../../.env down
 
 up-replica2-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f replica2.yml up -d
+	cd docker-compose/replica2 && docker compose --env-file ../../.env up -d
 
 down-replica2-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f replica2.yml down
+	cd docker-compose/replica2 && docker compose --env-file ../../.env down
 
 up-haproxy-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f haproxy.yml up -d
+	cd docker-compose/haproxy && docker compose --env-file ../../.env up -d
 
 down-haproxy-prod:
-	cd docker-compose/prod && docker compose --env-file ../../.env -f haproxy.yml down
+	cd docker-compose/haproxy && docker compose --env-file ../../.env down
 
 # ============================================================
 # TESTS (local)
