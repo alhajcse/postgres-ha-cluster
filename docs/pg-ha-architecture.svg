@@ -1,0 +1,426 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="gradApp" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="gradHA" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#1e40af"/>
+    </linearGradient>
+    <linearGradient id="gradPrimary" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="gradReplica" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="gradMonitor" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="gradClient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    
+    <!-- Shadows -->
+    <filter id="shadow" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0" dy="3" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.15"/>
+    </filter>
+    <filter id="shadowSm" x="-5%" y="-5%" width="115%" height="115%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.1"/>
+    </filter>
+    
+    <!-- Arrow markers -->
+    <marker id="arrGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#64748b"/>
+    </marker>
+    <marker id="arrGreen" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#10b981"/>
+    </marker>
+    <marker id="arrYellow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrOrange" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#ea580c"/>
+    </marker>
+    <marker id="arrRed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrBlue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#3b82f6"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1600" height="1100" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="800" y="40" text-anchor="middle" font-size="26" font-weight="700" fill="#0f172a">
+    PostgreSQL High Availability Cluster — Technical Architecture
+  </text>
+  <text x="800" y="65" text-anchor="middle" font-size="13" fill="#64748b">
+    5-VM Deployment · Streaming Replication · HAProxy Load Balancing · Prometheus/Grafana Monitoring
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 1: CLIENT / APPLICATION                                -->
+  <!-- ============================================================ -->
+  
+  <rect x="600" y="90" width="400" height="80" rx="10" fill="url(#gradClient)" filter="url(#shadow)"/>
+  <text x="800" y="122" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">
+    CLIENT APPLICATION
+  </text>
+  <text x="800" y="145" text-anchor="middle" font-size="13" fill="#e2e8f0">
+    Spring Boot · JDBC · psql
+  </text>
+  <text x="800" y="162" text-anchor="middle" font-size="12" fill="#cbd5e1">
+    Write: :5000   |   Read: :5001
+  </text>
+
+  <!-- Arrow: Client → HAProxy -->
+  <line x1="800" y1="170" x2="800" y2="220" stroke="#64748b" stroke-width="3" marker-end="url(#arrGray)"/>
+  <rect x="810" y="185" width="120" height="20" rx="3" fill="#f1f5f9"/>
+  <text x="870" y="199" text-anchor="middle" font-size="11" font-weight="600" fill="#475569">
+    TCP Connection
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 2: HAPROXY GATEWAY                                     -->
+  <!-- ============================================================ -->
+
+  <rect x="450" y="225" width="700" height="130" rx="12" fill="url(#gradHA)" filter="url(#shadow)"/>
+  <text x="800" y="255" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">
+    ⚖ HAProxy Gateway — VM4 (x.x.x.234)
+  </text>
+  <text x="800" y="278" text-anchor="middle" font-size="13" fill="#dbeafe">
+    Layer 4 TCP Load Balancer  ·  Round-Robin + Health Checks (1s interval)
+  </text>
+
+  <!-- HAProxy port boxes -->
+  <rect x="480" y="295" width="140" height="45" rx="6" fill="#1e3a8a" opacity="0.6"/>
+  <text x="550" y="315" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">
+    :5000  WRITE
+  </text>
+  <text x="550" y="332" text-anchor="middle" font-size="10" fill="#bfdbfe">
+    → Primary only
+  </text>
+
+  <rect x="635" y="295" width="140" height="45" rx="6" fill="#1e3a8a" opacity="0.6"/>
+  <text x="705" y="315" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">
+    :5001  READ
+  </text>
+  <text x="705" y="332" text-anchor="middle" font-size="10" fill="#bfdbfe">
+    → Replicas (RR)
+  </text>
+
+  <rect x="790" y="295" width="140" height="45" rx="6" fill="#1e3a8a" opacity="0.6"/>
+  <text x="860" y="315" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">
+    :5002  ALL
+  </text>
+  <text x="860" y="332" text-anchor="middle" font-size="10" fill="#bfdbfe">
+    → All 3 nodes
+  </text>
+
+  <rect x="945" y="295" width="140" height="45" rx="6" fill="#1e3a8a" opacity="0.6"/>
+  <text x="1015" y="315" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">
+    :7000  STATS
+  </text>
+  <text x="1015" y="332" text-anchor="middle" font-size="10" fill="#bfdbfe">
+    → Dashboard
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- ARROWS: HAProxy → 3 DB NODES                                 -->
+  <!-- ============================================================ -->
+
+  <!-- Arrow 1: HAProxy → Primary (left) -->
+  <path d="M 520 355 L 520 420 L 300 420 L 300 480" 
+        stroke="#10b981" stroke-width="4" fill="none" marker-end="url(#arrGreen)"/>
+  <rect x="340" y="400" width="150" height="24" rx="4" fill="#d1fae5" stroke="#10b981"/>
+  <text x="415" y="417" text-anchor="middle" font-size="11" font-weight="700" fill="#065f46">
+    :5000 Write Traffic
+  </text>
+
+  <!-- Arrow 2: HAProxy → Replica1 (right-top) -->
+  <path d="M 1080 355 L 1080 420 L 1300 420 L 1300 480" 
+        stroke="#f59e0b" stroke-width="4" fill="none" marker-end="url(#arrYellow)"/>
+  <rect x="1105" y="400" width="150" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="1180" y="417" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">
+    :5001 Read RR
+  </text>
+
+  <!-- Arrow 3: HAProxy → Replica2 (bottom-center-left) -->
+  <path d="M 700 355 L 700 740 L 300 740 L 300 850" 
+        stroke="#f59e0b" stroke-width="4" fill="none" marker-end="url(#arrYellow)"/>
+  <rect x="420" y="720" width="150" height="24" rx="4" fill="#fef3c7" stroke="#f59e0b"/>
+  <text x="495" y="737" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">
+    :5001 Read RR
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 3: POSTGRESQL NODES                                    -->
+  <!-- ============================================================ -->
+
+  <!-- PRIMARY (VM1) -->
+  <rect x="100" y="490" width="400" height="240" rx="12" fill="#ffffff" stroke="#10b981" stroke-width="3" filter="url(#shadow)"/>
+  <rect x="100" y="490" width="400" height="50" rx="12" fill="url(#gradPrimary)"/>
+  <rect x="100" y="525" width="400" height="15" fill="url(#gradPrimary)"/>
+  <text x="300" y="522" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">
+    🟢 PRIMARY — VM1
+  </text>
+  
+  <text x="300" y="565" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">
+    x.x.x.231  ·  PostgreSQL 15
+  </text>
+  
+  <rect x="140" y="585" width="140" height="40" rx="6" fill="#ecfdf5" stroke="#10b981" stroke-width="1"/>
+  <text x="210" y="602" text-anchor="middle" font-size="11" font-weight="700" fill="#065f46">
+    PostgreSQL
+  </text>
+  <text x="210" y="617" text-anchor="middle" font-size="11" fill="#065f46">
+    :5432
+  </text>
+
+  <rect x="300" y="585" width="160" height="40" rx="6" fill="#ecfdf5" stroke="#10b981" stroke-width="1"/>
+  <text x="380" y="602" text-anchor="middle" font-size="11" font-weight="700" fill="#065f46">
+    Read + Write
+  </text>
+  <text x="380" y="617" text-anchor="middle" font-size="11" fill="#065f46">
+    Accepts all writes
+  </text>
+
+  <text x="300" y="650" text-anchor="middle" font-size="12" font-weight="600" fill="#475569">
+    Exporters
+  </text>
+  <rect x="140" y="660" width="160" height="35" rx="5" fill="#f0fdf4" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="220" y="675" text-anchor="middle" font-size="10" font-weight="600" fill="#065f46">
+    postgres_exporter
+  </text>
+  <text x="220" y="688" text-anchor="middle" font-size="10" fill="#065f46">
+    :9187
+  </text>
+
+  <rect x="310" y="660" width="150" height="35" rx="5" fill="#f0fdf4" stroke="#10b981" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="385" y="675" text-anchor="middle" font-size="10" font-weight="600" fill="#065f46">
+    node_exporter
+  </text>
+  <text x="385" y="688" text-anchor="middle" font-size="10" fill="#065f46">
+    :9100
+  </text>
+
+  <rect x="140" y="703" width="320" height="20" rx="4" fill="#d1fae5"/>
+  <text x="300" y="717" text-anchor="middle" font-size="10" font-weight="700" fill="#065f46">
+    Replication slots: slot_1, slot_2
+  </text>
+
+  <!-- REPLICA 1 (VM2) -->
+  <rect x="1100" y="490" width="400" height="240" rx="12" fill="#ffffff" stroke="#f59e0b" stroke-width="3" filter="url(#shadow)"/>
+  <rect x="1100" y="490" width="400" height="50" rx="12" fill="url(#gradReplica)"/>
+  <rect x="1100" y="525" width="400" height="15" fill="url(#gradReplica)"/>
+  <text x="1300" y="522" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">
+    🟡 REPLICA 1 — VM2
+  </text>
+
+  <text x="1300" y="565" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">
+    x.x.x.232  ·  PostgreSQL 15
+  </text>
+
+  <rect x="1140" y="585" width="140" height="40" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1"/>
+  <text x="1210" y="602" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">
+    PostgreSQL
+  </text>
+  <text x="1210" y="617" text-anchor="middle" font-size="11" fill="#92400e">
+    :5432
+  </text>
+
+  <rect x="1300" y="585" width="160" height="40" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1"/>
+  <text x="1380" y="602" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">
+    🔒 Read Only
+  </text>
+  <text x="1380" y="617" text-anchor="middle" font-size="11" fill="#92400e">
+    Hot standby
+  </text>
+
+  <text x="1300" y="650" text-anchor="middle" font-size="12" font-weight="600" fill="#475569">
+    Exporters
+  </text>
+  <rect x="1140" y="660" width="160" height="35" rx="5" fill="#fefce8" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="1220" y="675" text-anchor="middle" font-size="10" font-weight="600" fill="#92400e">
+    postgres_exporter
+  </text>
+  <text x="1220" y="688" text-anchor="middle" font-size="10" fill="#92400e">
+    :9187
+  </text>
+
+  <rect x="1310" y="660" width="150" height="35" rx="5" fill="#fefce8" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="1385" y="675" text-anchor="middle" font-size="10" font-weight="600" fill="#92400e">
+    node_exporter
+  </text>
+  <text x="1385" y="688" text-anchor="middle" font-size="10" fill="#92400e">
+    :9100
+  </text>
+
+  <rect x="1140" y="703" width="320" height="20" rx="4" fill="#fef3c7"/>
+  <text x="1300" y="717" text-anchor="middle" font-size="10" font-weight="700" fill="#92400e">
+    Streaming from: slot_1
+  </text>
+
+  <!-- REPLICA 2 (VM3) -->
+  <rect x="100" y="860" width="400" height="230" rx="12" fill="#ffffff" stroke="#f59e0b" stroke-width="3" filter="url(#shadow)"/>
+  <rect x="100" y="860" width="400" height="50" rx="12" fill="url(#gradReplica)"/>
+  <rect x="100" y="895" width="400" height="15" fill="url(#gradReplica)"/>
+  <text x="300" y="892" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">
+    🟡 REPLICA 2 — VM3
+  </text>
+
+  <text x="300" y="935" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">
+    x.x.x.233  ·  PostgreSQL 15
+  </text>
+
+  <rect x="140" y="955" width="140" height="40" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1"/>
+  <text x="210" y="972" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">
+    PostgreSQL
+  </text>
+  <text x="210" y="987" text-anchor="middle" font-size="11" fill="#92400e">
+    :5432
+  </text>
+
+  <rect x="300" y="955" width="160" height="40" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1"/>
+  <text x="380" y="972" text-anchor="middle" font-size="11" font-weight="700" fill="#92400e">
+    🔒 Read Only
+  </text>
+  <text x="380" y="987" text-anchor="middle" font-size="11" fill="#92400e">
+    Hot standby
+  </text>
+
+  <text x="300" y="1020" text-anchor="middle" font-size="12" font-weight="600" fill="#475569">
+    Exporters
+  </text>
+  <rect x="140" y="1030" width="160" height="35" rx="5" fill="#fefce8" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="220" y="1045" text-anchor="middle" font-size="10" font-weight="600" fill="#92400e">
+    postgres_exporter
+  </text>
+  <text x="220" y="1058" text-anchor="middle" font-size="10" fill="#92400e">
+    :9187
+  </text>
+
+  <rect x="310" y="1030" width="150" height="35" rx="5" fill="#fefce8" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="385" y="1045" text-anchor="middle" font-size="10" font-weight="600" fill="#92400e">
+    node_exporter
+  </text>
+  <text x="385" y="1058" text-anchor="middle" font-size="10" fill="#92400e">
+    :9100
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- WAL STREAMING ARROWS                                          -->
+  <!-- ============================================================ -->
+
+  <!-- WAL: Primary → Replica1 -->
+  <line x1="500" y1="600" x2="1100" y2="600" 
+        stroke="#ea580c" stroke-width="5" stroke-dasharray="12,6" marker-end="url(#arrOrange)"/>
+  <rect x="720" y="580" width="180" height="26" rx="5" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="810" y="598" text-anchor="middle" font-size="12" font-weight="700" fill="#9a3412">
+    ⚡ Streaming WAL (async)
+  </text>
+
+  <!-- WAL: Primary → Replica2 -->
+  <path d="M 300 730 L 300 860" 
+        stroke="#ea580c" stroke-width="5" stroke-dasharray="12,6" marker-end="url(#arrOrange)"/>
+  <rect x="315" y="780" width="180" height="26" rx="5" fill="#ffedd5" stroke="#ea580c"/>
+  <text x="405" y="798" text-anchor="middle" font-size="12" font-weight="700" fill="#9a3412">
+    ⚡ Streaming WAL (async)
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- MONITORING VM5                                                -->
+  <!-- ============================================================ -->
+
+  <rect x="1100" y="860" width="400" height="230" rx="12" fill="#ffffff" stroke="#dc2626" stroke-width="3" filter="url(#shadow)"/>
+  <rect x="1100" y="860" width="400" height="50" rx="12" fill="url(#gradMonitor)"/>
+  <rect x="1100" y="895" width="400" height="15" fill="url(#gradMonitor)"/>
+  <text x="1300" y="892" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">
+    🔴 MONITORING — VM5
+  </text>
+
+  <text x="1300" y="935" text-anchor="middle" font-size="14" font-weight="600" fill="#0f172a">
+    x.x.x.235  ·  Observability Hub
+  </text>
+
+  <rect x="1140" y="955" width="120" height="55" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1"/>
+  <text x="1200" y="975" text-anchor="middle" font-size="11" font-weight="700" fill="#991b1b">
+    Prometheus
+  </text>
+  <text x="1200" y="992" text-anchor="middle" font-size="11" fill="#991b1b">
+    :9090
+  </text>
+  <text x="1200" y="1005" text-anchor="middle" font-size="9" fill="#991b1b">
+    TSDB 15d
+  </text>
+
+  <rect x="1270" y="955" width="100" height="55" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1"/>
+  <text x="1320" y="975" text-anchor="middle" font-size="11" font-weight="700" fill="#991b1b">
+    Grafana
+  </text>
+  <text x="1320" y="992" text-anchor="middle" font-size="11" fill="#991b1b">
+    :3000
+  </text>
+  <text x="1320" y="1005" text-anchor="middle" font-size="9" fill="#991b1b">
+    Dashboards
+  </text>
+
+  <rect x="1380" y="955" width="100" height="55" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1"/>
+  <text x="1430" y="975" text-anchor="middle" font-size="11" font-weight="700" fill="#991b1b">
+    Alert
+  </text>
+  <text x="1430" y="992" text-anchor="middle" font-size="11" fill="#991b1b">
+    :9093
+  </text>
+  <text x="1430" y="1005" text-anchor="middle" font-size="9" fill="#991b1b">
+    Notify
+  </text>
+
+  <rect x="1140" y="1020" width="340" height="30" rx="5" fill="#fee2e2" stroke="#dc2626" stroke-width="1" stroke-dasharray="3,2"/>
+  <text x="1310" y="1040" text-anchor="middle" font-size="11" font-weight="600" fill="#991b1b">
+    node_exporter :9100  ·  scrapes all VMs every 15s
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- METRICS ARROWS (dashed red)                                   -->
+  <!-- ============================================================ -->
+
+  <!-- Primary → Prometheus -->
+  <path d="M 500 700 Q 800 700 1140 1000" 
+        stroke="#dc2626" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrRed)" opacity="0.7"/>
+
+  <!-- Replica1 → Prometheus -->
+  <path d="M 1300 730 L 1300 860" 
+        stroke="#dc2626" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrRed)" opacity="0.7"/>
+
+  <!-- Replica2 → Prometheus -->
+  <path d="M 500 980 Q 800 980 1140 1000" 
+        stroke="#dc2626" stroke-width="2" stroke-dasharray="6,4" fill="none" marker-end="url(#arrRed)" opacity="0.7"/>
+
+  <text x="800" y="1080" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626">
+    ⚡ Metrics pipeline: postgres_exporter (:9187) + node_exporter (:9100) → Prometheus (:9090) → Grafana / Alertmanager
+  </text>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND                                                        -->
+  <!-- ============================================================ -->
+
+  <rect x="560" y="1055" width="480" height="35" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <line x1="580" y1="1073" x2="620" y2="1073" stroke="#10b981" stroke-width="3" marker-end="url(#arrGreen)"/>
+  <text x="630" y="1077" font-size="10" fill="#334155">Write</text>
+  <line x1="680" y1="1073" x2="720" y2="1073" stroke="#f59e0b" stroke-width="3" marker-end="url(#arrYellow)"/>
+  <text x="730" y="1077" font-size="10" fill="#334155">Read</text>
+  <line x1="780" y1="1073" x2="820" y2="1073" stroke="#ea580c" stroke-width="3" stroke-dasharray="6,4" marker-end="url(#arrOrange)"/>
+  <text x="830" y="1077" font-size="10" fill="#334155">WAL</text>
+  <line x1="880" y1="1073" x2="920" y2="1073" stroke="#dc2626" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#arrRed)"/>
+  <text x="930" y="1077" font-size="10" fill="#334155">Metrics</text>
+
+</svg>
