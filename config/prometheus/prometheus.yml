@@ -36,3 +36,100 @@ scrape_configs:
           - '10.70.16.233:9187'   # Replica2
         labels:
           env: prod
+
+  - job_name: 'kube-state-metrics'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - '10.70.16.240:30081'
+        labels:
+          env: 'lab'
+          component: 'kubernetes'
+
+  - job_name: 'kubelet-cadvisor'
+    scheme: https
+    metrics_path: /metrics/cadvisor
+    scrape_interval: 15s
+    bearer_token_file: /etc/prometheus/secrets/kubelet-token
+
+    # Home-lab testing only: certificate verification is disabled.
+    # Replace with proper CA and certificate validation for production.
+    tls_config:
+      insecure_skip_verify: true
+
+    static_configs:
+      - targets: ['10.70.16.237:10250']
+        labels:
+          k8s_node: 'node3-vm-01'
+          env: 'lab'
+          component: 'kubernetes'
+
+      - targets: ['10.70.16.238:10250']
+        labels:
+          k8s_node: 'k8s-cp-02'
+          env: 'lab'
+          component: 'kubernetes'
+
+      - targets: ['10.70.16.239:10250']
+        labels:
+          k8s_node: 'k8s-cp-03'
+          env: 'lab'
+          component: 'kubernetes'
+
+      - targets: ['10.70.16.240:10250']
+        labels:
+          k8s_node: 'node4-vm-01'
+          env: 'lab'
+          component: 'kubernetes'
+
+      - targets: ['10.70.16.241:10250']
+        labels:
+          k8s_node: 'node4-vm-02'
+          env: 'lab'
+          component: 'kubernetes'
+  # ═══════════════════════════════════════════════════════
+  # Kafka JMX — 3 brokers on 10.70.16.242
+  # ═══════════════════════════════════════════════════════
+  - job_name: 'kafka-jmx'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['10.70.16.242:7071']
+        labels: {instance: 'kafka-1', broker_id: '1', cluster: 'kafka-multi-node'}
+      - targets: ['10.70.16.242:7072']
+        labels: {instance: 'kafka-2', broker_id: '2', cluster: 'kafka-multi-node'}
+      - targets: ['10.70.16.242:7073']
+        labels: {instance: 'kafka-3', broker_id: '3', cluster: 'kafka-multi-node'}
+
+  # ═══════════════════════════════════════════════════════
+  # Kafka Exporter — consumer lag, topics
+  # ═══════════════════════════════════════════════════════
+  - job_name: 'kafka-exporter'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['10.70.16.242:9308']
+        labels: {instance: 'kafka-exporter', cluster: 'kafka-multi-node'}
+
+  # ═══════════════════════════════════════════════════════
+  # Spring Boot Microservices (K8s)
+  # ═══════════════════════════════════════════════════════
+  - job_name: 'k8s-product-service'
+    scrape_interval: 15s
+    metrics_path: '/product/actuator/prometheus'
+    static_configs:
+      # K8s Worker Node-IP(Where NodePort 30083 Open)
+      - targets: ['10.70.16.240:30083']
+        labels:
+          env: 'lab'
+          service: 'product-service'
+
+  - job_name: 'k8s-order-service'
+    scrape_interval: 15s
+    metrics_path: '/order/actuator/prometheus'
+    static_configs:
+      # K8s Worker Node-IP (Where NodePort 30084 Open)
+      - targets: ['10.70.16.240:30084']
+        labels:
+          env: 'lab'
+          service: 'order-service'
